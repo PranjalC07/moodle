@@ -16,32 +16,27 @@
 
 namespace mod_wiki\courseformat;
 
-use core_courseformat\local\overview\overviewfactory;
 use mod_wiki\wiki_mode;
-use ReflectionClass;
+use core_courseformat\local\overview\overviewfactory;
 
 /**
  * Tests for Wiki integration.
  *
- * @covers \mod_wiki\courseformat\overview
  * @package    mod_wiki
  * @category   test
  * @copyright  2025 Laurent David <laurent.david@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(overview::class)]
 final class overview_test extends \advanced_testcase {
-
-
     /**
      * Data provider for wiki modes.
      *
-     * @return array
+     * @return \Generator
      */
-    public static function get_wiki_mode_provider(): array {
-        return [
-            'collaborative' => ['mode' => wiki_mode::COLLABORATIVE],
-            'individual' => ['mode' => wiki_mode::INDIVIDUAL],
-        ];
+    public static function get_wiki_mode_provider(): \Generator {
+        yield 'collaborative' => ['mode' => wiki_mode::COLLABORATIVE];
+        yield 'individual' => ['mode' => wiki_mode::INDIVIDUAL];
     }
 
     /**
@@ -50,10 +45,8 @@ final class overview_test extends \advanced_testcase {
      * @param string $username
      * @param int|null $expectedcount
      * @return void
-     *
-     * @covers ::get_extra_my_entries
-     * @dataProvider get_extra_my_entries_provider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('get_extra_my_entries_provider')]
     public function test_get_extra_my_entries(string $username, ?int $expectedcount = null): void {
         $this->resetAfterTest();
         ['users' => $users, 'instance' => $instance, 'course' => $course] = $this->setup_users_and_activity();
@@ -72,24 +65,20 @@ final class overview_test extends \advanced_testcase {
     /**
      * Data provider for get_extra_my_entries.
      *
-     * @return array
+     * @return \Generator
      */
-    public static function get_extra_my_entries_provider(): array {
-        return [
-            'student 1' => ['s1', 1],
-            'student 2' => ['s2', 1],
-            'teacher 1' => ['t1', null], // Teacher 1 does not have any entries.
-        ];
+    public static function get_extra_my_entries_provider(): \Generator {
+        yield 'student 1' => ['s1', 1];
+        yield 'student 2' => ['s2', 1];
+        yield 'teacher 1' => ['t1', null]; // Teacher 1 does not have any entries.
     }
 
     /**
      * Test the wiki mode of the wiki instance.
      *
      * @param wiki_mode $mode the expected wiki mode.
-     *
-     * @covers      ::get_extra_wiki_type
-     * @dataProvider get_wiki_mode_provider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('get_wiki_mode_provider')]
     public function test_wiki_mode(wiki_mode $mode): void {
         $this->resetAfterTest();
         ['users' => $users, 'instance' => $instance, 'course' => $course] =
@@ -197,10 +186,8 @@ final class overview_test extends \advanced_testcase {
      * @param string $username
      * @param int $coursegroupmode
      * @param int $expectedcount
-     *
-     * @covers ::get_extra_entries
-     * @dataProvider data_provider_get_extra_entries
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('data_provider_get_extra_entries')]
     public function test_get_extra_entries(
         string $username,
         int $coursegroupmode,
@@ -241,19 +228,20 @@ final class overview_test extends \advanced_testcase {
 
     /**
      * Test get_extra_entries method.
-     *
-     * @covers ::get_actions_overview
      */
     public function test_get_actions_overview(): void {
         $this->resetAfterTest();
 
         [
             'users' => $users,
-            'instance' => $instance,
+            'instance' => $instancecol,
             'course' => $course
-        ] = $this->setup_users_and_activity(SEPARATEGROUPS);
+        ] = $this->setup_users_and_activity(
+            groupmode: SEPARATEGROUPS, // Use separate groups to initialise pages too.
+            mode: wiki_mode::COLLABORATIVE->value,
+        );
 
-        $notinitinstance = $this->getDataGenerator()->create_module(
+        $instanceind = $this->getDataGenerator()->create_module(
             'wiki',
             [
                 'course' => $course,
@@ -263,17 +251,16 @@ final class overview_test extends \advanced_testcase {
 
         $this->setUser($users['t1']->id);
 
-        $cm = get_fast_modinfo($course)->get_cm($instance->cmid);
-        $emptycm = get_fast_modinfo($course)->get_cm($notinitinstance->cmid);
-
-        $overview = overviewfactory::create($cm);
+        $cmcol = get_fast_modinfo($course)->get_cm($instancecol->cmid);
+        $overview = overviewfactory::create($cmcol);
         $item = $overview->get_actions_overview();
-
         $this->assertNotNull($item);
+        $this->assertStringContainsString('wiki/map.php', $item->get_content()->url->out(false));
 
-        $overview = overviewfactory::create($emptycm);
+        // Test the individual wiki instance, which is also empty, has actions.
+        $cmind = get_fast_modinfo($course)->get_cm($instanceind->cmid);
+        $overview = overviewfactory::create($cmind);
         $item = $overview->get_actions_overview();
-
-        $this->assertNull($item);
+        $this->assertStringContainsString('wiki/view.php', $item->get_content()->url->out(false));
     }
 }

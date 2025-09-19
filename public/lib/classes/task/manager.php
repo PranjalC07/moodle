@@ -693,7 +693,7 @@ class manager {
      */
     #[\core\attribute\deprecated('\core\task\manager::get_next_adhoc_task()', since: '4.1', mdl: 'MDL-67648', final: true)]
     public static function ensure_adhoc_task_qos(): void {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     /**
@@ -1473,6 +1473,9 @@ class manager {
                     $task = self::scheduled_task_from_record($taskrecord);
                     $task->set_lock($lock);
 
+                    $displayname = $task->get_name() . ' (' . get_class($task) . ')';
+                    mtrace("Marking orphaned scheduled task as failed: $displayname");
+
                     // We have to skip log finalisation when failing the task as the finalise_log method from
                     // the log manager is only aware of the current running task (i.e., the cleanup task).
                     self::scheduled_task_failed($task, false);
@@ -1487,6 +1490,9 @@ class manager {
 
                     $task = self::adhoc_task_from_record($taskrecord);
                     $task->set_lock($lock);
+
+                    $displayname = get_class($task) . ' (adhoc task id ' . $task->get_id() . ')';
+                    mtrace("Marking orphaned adhoc task as failed: $displayname");
 
                     // We have to skip log finalisation when failing the task as the finalise_log method from
                     // the log manager is only aware of the current running task (i.e., the cleanup task).

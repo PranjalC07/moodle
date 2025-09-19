@@ -145,6 +145,7 @@ $string['backpackapiurl'] = 'Backpack API URL';
 $string['backpackweburl'] = 'Backpack URL';
 $string['backpackprovider'] = 'Backpack provider';
 $string['badges'] = 'Badges';
+$string['badgesnavigation'] = 'Badges navigation';
 $string['badgedetails'] = 'Badge details';
 $string['badgeimage'] = 'Image';
 $string['badgeimageinfo'] = 'For best results, upload a square image with a minimum size of 300 x 300 pixels.';
@@ -299,6 +300,9 @@ $string['error:badgenotfound'] = 'Badge not found';
 $string['error:cannotawardbadge'] = 'Cannot award badge to a user.';
 $string['error:cannotrevokebadge'] = 'Cannot revoke badge from a user.';
 $string['error:cannotdeletecriterion'] = 'This criterion cannot be deleted. ';
+$string['error:cannotsendtobackpack'] = '<strong>Can\'t add badge to backpack</strong><br />
+Your backpack provider is sending this message: \'{$a}\'.<br /><br />
+You can try downloading the badge and adding it manually to your backpack, or try again later.';
 $string['error:connectionunknownreason'] = 'The connection was unsuccessful but no reason was given.';
 $string['error:clone'] = 'Cannot clone the badge.';
 $string['error:externalbadgedoesntexist'] = 'Badge not found';
@@ -405,6 +409,7 @@ $string['month'] = 'Month(s)';
 $string['moredetails'] = 'More details';
 $string['mybadges'] = 'My badges';
 $string['mybackpack'] = 'My backpack settings';
+$string['namewithimagelink'] = 'Name with image and link';
 $string['namewithlink'] = 'Name with link';
 $string['never'] = 'Never: this badge does not expire.';
 $string['newbackpack'] = 'Add a new backpack';

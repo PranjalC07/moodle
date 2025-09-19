@@ -16,10 +16,13 @@
 
 namespace core_courseformat\output\local\overview;
 
+use core\output\externable;
 use core\output\named_templatable;
 use core\output\renderable;
 use core\output\renderer_base;
 use core\plugin_manager;
+use core_courseformat\activityoverviewbase;
+use core_courseformat\external\overviewtable_exporter;
 use core_courseformat\local\overview\overviewitem;
 use core_courseformat\local\overview\overviewfactory;
 use cm_info;
@@ -32,7 +35,7 @@ use stdClass;
  * @copyright  2025 Ferran Recio <ferran@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class overviewtable implements renderable, named_templatable {
+class overviewtable implements externable, named_templatable, renderable {
     /** @var array $header the table headers */
     private array $headers = [];
 
@@ -55,7 +58,7 @@ class overviewtable implements renderable, named_templatable {
 
     #[\Override]
     public function export_for_template(renderer_base $output): stdClass {
-        $activities = $this->load_all_overviews_from_each_activity($output);
+        $activities = $this->load_all_overviews_from_each_activity();
         $headers = $this->export_headers();
         $result = (object) [
             'caption' => $this->get_table_caption(),
@@ -120,6 +123,7 @@ class overviewtable implements renderable, named_templatable {
             }
             $result[] = [
                 'cmid' => $activity['cmid'],
+                'haserror' => $activity['haserror'],
                 'overviews' => $items,
             ];
         }
@@ -129,18 +133,20 @@ class overviewtable implements renderable, named_templatable {
     /**
      * Loads all overviews from activities for the given course and module name.
      *
-     * @param renderer_base $output
      * @return array An array of overviews.
      */
-    private function load_all_overviews_from_each_activity(renderer_base $output): array {
+    private function load_all_overviews_from_each_activity(): array {
         $result = [];
         foreach ($this->get_related_course_modules() as $cm) {
             if (!$this->is_cm_displayable($cm)) {
                 continue;
             }
+            $overview = overviewfactory::create($cm);
             $result[] = [
                 'cmid' => $cm->id,
-                'overviews' => $this->load_overview_items_from_activity($output, $cm),
+                'cm' => $cm,
+                'haserror' => $overview->has_error(),
+                'overviews' => $this->load_overview_items_from_activity($overview),
             ];
         }
         return $result;
@@ -154,9 +160,12 @@ class overviewtable implements renderable, named_templatable {
     private function get_related_course_modules(): array {
         $modinfo = get_fast_modinfo($this->course->id);
         if ($this->modname == 'resource') {
-            return $this->get_all_resource_intances($modinfo);
+            $result = $this->get_all_resource_intances($modinfo);
+        } else {
+            $result = $modinfo->get_instances_of($this->modname);
         }
-        return $modinfo->get_instances_of($this->modname);
+        $modinfo->sort_cm_array($result);
+        return $result;
     }
 
     /**
@@ -218,21 +227,49 @@ class overviewtable implements renderable, named_templatable {
     /**
      * Loads overview items from a given activity.
      *
-     * @param renderer_base $output
-     * @param cm_info $cm
+     * @param activityoverviewbase $overview
      * @return array An associative array containing the overview items for the activity.
      */
-    private function load_overview_items_from_activity(renderer_base $output, cm_info $cm): array {
-        global $PAGE;
-        $overview = overviewfactory::create($cm);
+    private function load_overview_items_from_activity(activityoverviewbase $overview): array {
+        $row = $this->get_activity_columns($overview);
+        $row = array_filter($row, function ($item) {
+            return $item !== null;
+        });
+
+        $this->register_columns($row);
+        $result = [];
+        foreach ($row as $key => $item) {
+            $item->set_key($key);
+            $result[$key] = $item;
+        }
+        return $result;
+    }
+
+    /**
+     * Get the columns for the activity overview.
+     *
+     * This method retrieves the columns that can be displayed in the overview table
+     * for a specific activity. However, column with null values may be filtered if
+     * all the activities do not have any content for that column.
+     *
+     * @param activityoverviewbase $overview The activity overview instance.
+     * @return array An associative array of column data.
+     */
+    private function get_activity_columns(activityoverviewbase $overview): array {
+        // It is highly improbable that an activity has an error (usually because of an erroneous group
+        // configuration). For those cases, we only use the activity name and prevent the plugin from
+        // doing any more calculations.
+        if ($overview->has_error()) {
+            return ['name' => $overview->get_name_overview()];
+        }
 
         $row = [
-            'name' => $overview->get_name_overview($output),
-            'duedate' => $overview->get_due_date_overview($output),
-            'completion' => $overview->get_completion_overview($output),
+            'name' => $overview->get_name_overview(),
+            'duedate' => $overview->get_due_date_overview(),
+            'completion' => $overview->get_completion_overview(),
         ];
 
-        $row = array_merge($row, $overview->get_extra_overview_items($output));
+        $row = array_merge($row, $overview->get_extra_overview_items());
 
         $gradeitems = $overview->get_grades_overviews();
         if (!empty($gradeitems)) {
@@ -242,19 +279,9 @@ class overviewtable implements renderable, named_templatable {
         }
 
         // Actions are always the last column, if any.
-        $row['actions'] = $overview->get_actions_overview($output);
+        $row['actions'] = $overview->get_actions_overview();
 
-        $row = array_filter($row, function ($item) {
-            return $item !== null;
-        });
-
-        $this->register_columns($row);
-
-        $result = [];
-        foreach ($row as $key => $item) {
-            $result[$key] = $item;
-        }
-        return $result;
+        return $row;
     }
 
     /**
@@ -271,10 +298,76 @@ class overviewtable implements renderable, named_templatable {
                     'name' => $item->get_name(),
                     'key' => $key,
                     'textalign' => $item->get_text_align()->classes(),
+                    'align' => $item->get_text_align()->value,
                 ];
             }
             $this->columnhascontent[$key] = $this->columnhascontent[$key] || $item->get_value() !== null;
         }
+    }
+
+    #[\Override]
+    public function get_exporter(?\core\context $context = null): overviewtable_exporter {
+        $context = $context ?? \core\context\course::instance($this->course->id);
+        return new overviewtable_exporter(
+            $this,
+            ['context' => $context],
+        );
+    }
+
+    #[\Override]
+    public static function get_read_structure(
+        int $required = VALUE_REQUIRED,
+        mixed $default = null
+    ): \core_external\external_single_structure {
+        return overviewtable_exporter::get_read_structure($required, $default);
+    }
+
+    #[\Override]
+    public static function read_properties_definition(): array {
+        return overviewtable_exporter::read_properties_definition();
+    }
+
+    /**
+     * Exports overview table data for external use.
+     *
+     * This method gathers all activity overviews, headers, course information,
+     * integration status, and formats them for external consumption.
+     *
+     * @return stdClass An object containing all the output related data.
+     */
+    public function export_for_external(): stdClass {
+        $activities = $this->load_all_overviews_from_each_activity();
+        return (object) [
+            'headers' => $this->export_headers(),
+            'course' => $this->course,
+            'hasintegration' => overviewfactory::activity_has_overview_integration($this->modname),
+            'activities' => $this->export_activities_for_external($activities),
+        ];
+    }
+
+    /**
+     * Exports the activities for external use.
+     *
+     * @param array $activities An array of activities, each containing a 'cm' and 'overviews'.
+     * @return array An array of activities ready for external export.
+     */
+    private function export_activities_for_external(
+        array $activities,
+    ): array {
+        $result = [];
+        foreach ($activities as $activity) {
+            $columnitems = array_filter(
+                $activity['overviews'],
+                fn($key): bool => $this->columnhascontent[$key],
+                ARRAY_FILTER_USE_KEY,
+            );
+            $result[] = (object) [
+                'cm' => $activity['cm'],
+                'haserror' => $activity['haserror'],
+                'items' => array_values($columnitems),
+            ];
+        }
+        return $result;
     }
 
     /**

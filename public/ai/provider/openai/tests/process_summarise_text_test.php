@@ -104,7 +104,7 @@ final class process_summarise_text_test extends \advanced_testcase {
             actionconfig: [
                 'systeminstruction' => get_string('action_summarise_text_instruction', 'core_ai'),
                 'temperature' => '0.5',
-                'max_tokens' => '100',
+                'max_completion_tokens' => '100',
             ],
         );
         $processor = new process_summarise_text($this->provider, $this->action);
@@ -117,14 +117,14 @@ final class process_summarise_text_test extends \advanced_testcase {
 
         $this->assertEquals('gpt-4o', $body->model);
         $this->assertEquals('0.5', $body->temperature);
-        $this->assertEquals('100', $body->max_tokens);
+        $this->assertEquals('100', $body->max_completion_tokens);
 
         $this->provider = $this->create_provider(
             actionclass: \core_ai\aiactions\summarise_text::class,
             actionconfig: [
                 'model' => 'my-custom-gpt',
                 'systeminstruction' => get_string('action_summarise_text_instruction', 'core_ai'),
-                'modelextraparams' => '{"temperature": 0.5,"max_tokens": 100}',
+                'modelextraparams' => '{"temperature": 0.5,"max_completion_tokens": 100}',
             ],
         );
         $processor = new process_summarise_text($this->provider, $this->action);
@@ -137,7 +137,7 @@ final class process_summarise_text_test extends \advanced_testcase {
 
         $this->assertEquals('my-custom-gpt', $body->model);
         $this->assertEquals('0.5', $body->temperature);
-        $this->assertEquals('100', $body->max_tokens);
+        $this->assertEquals('100', $body->max_completion_tokens);
     }
 
     /**
@@ -394,7 +394,7 @@ final class process_summarise_text_test extends \advanced_testcase {
         $result = $processor->process();
         $this->assertEquals(429, $result->get_errorcode());
         $this->assertEquals(
-            expected: 'You have reached the maximum number of AI requests you can make in an hour. Try again later',
+            expected: 'You have reached the maximum number of AI requests you can make in an hour. Try again later.',
             actual: $result->get_errormessage(),
         );
         $this->assertFalse($result->get_success());
@@ -490,7 +490,7 @@ final class process_summarise_text_test extends \advanced_testcase {
         $result = $processor->process();
         $this->assertEquals(429, $result->get_errorcode());
         $this->assertEquals(
-            expected: 'AI has reached the maximum number of site-wide requests per hour. Try again later',
+            expected: 'The AI service has reached the maximum number of site-wide requests per hour. Try again later.',
             actual: $result->get_errormessage(),
         );
         $this->assertFalse($result->get_success());

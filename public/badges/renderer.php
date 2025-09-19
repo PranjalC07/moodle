@@ -151,12 +151,17 @@ class core_badges_renderer extends plugin_renderer_base {
                     'value' => $this->output->larrow() . ' ' . get_string('award', 'badges'),
                     'class' => 'actionbutton btn btn-secondary')
                 );
-        $actioncell->text .= html_writer::empty_tag('input', array(
+        if (has_capability('moodle/badges:revokebadge', $this->page->context)) {
+            $actioncell->text .= html_writer::empty_tag(
+                'input',
+                [
                     'type' => 'submit',
                     'name' => 'revoke',
                     'value' => get_string('revoke', 'badges') . ' ' . $this->output->rarrow(),
-                    'class' => 'actionbutton btn btn-secondary')
-                );
+                    'class' => 'actionbutton btn btn-secondary',
+                ]
+            );
+        }
         $actioncell->text .= html_writer::end_tag('div', array());
         $actioncell->attributes['class'] = 'actions';
         $potentialcell = new html_table_cell();
@@ -195,12 +200,22 @@ class core_badges_renderer extends plugin_renderer_base {
         $display .= $this->heading(get_string('issuerdetails', 'badges'), 3);
         $dl = array();
         $dl[get_string('issuername', 'badges')] = $badge->issuername;
-        $dl[get_string('contact', 'badges')] = html_writer::tag('a', $badge->issuercontact, array('href' => 'mailto:' . $badge->issuercontact));
-        $dl[get_string('issuerurl', 'badges')] = html_writer::tag(
-            'a',
-            $badge->issuerurl,
-            ['href' => $badge->issuerurl, 'target' => '_blank'],
-        );
+        $dl[get_string('contact', 'badges')] = '';
+        if (trim($badge->issuercontact)) {
+            $dl[get_string('contact', 'badges')] = html_writer::tag(
+                'a',
+                $badge->issuercontact,
+                ['href' => 'mailto:' . $badge->issuercontact],
+            );
+        }
+        $dl[get_string('issuerurl', 'badges')] = '';
+        if (trim($badge->issuerurl)) {
+            $dl[get_string('issuerurl', 'badges')] = html_writer::tag(
+                'a',
+                $badge->issuerurl,
+                ['href' => $badge->issuerurl, 'target' => '_blank'],
+            );
+        }
         $display .= $this->definition_list($dl);
 
         // Issuance details if any.
@@ -271,7 +286,7 @@ class core_badges_renderer extends plugin_renderer_base {
      */
     #[\core\attribute\deprecated(null, reason: 'It is no longer used', since: '4.3', mdl: 'MDL-77061', final: true)]
     public function print_badge_table_actions() {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     /**
@@ -391,7 +406,7 @@ class core_badges_renderer extends plugin_renderer_base {
      */
     #[\core\attribute\deprecated(null, since: '4.4', mdl: 'MDL-80052', final: true)]
     protected function render_badge_collection(\core_badges\output\badge_collection $badges) {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     /**
@@ -399,7 +414,7 @@ class core_badges_renderer extends plugin_renderer_base {
      */
     #[\core\attribute\deprecated(null, reason: 'It is no longer used', since: '4.3', mdl: 'MDL-77061', final: true)]
     protected function render_badge_management() {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     /**
@@ -580,7 +595,7 @@ class core_badges_renderer extends plugin_renderer_base {
      */
     #[\core\attribute\deprecated(null, since: '4.4', mdl: 'MDL-80052', final: true)]
     protected function render_badge_recipients(\core_badges\output\badge_recipients $recipients) {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     ////////////////////////////////////////////////////////////////////////////

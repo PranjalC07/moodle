@@ -19,13 +19,11 @@ namespace core_message;
 use core_external\external_api;
 use core_message\tests\helper as testhelper;
 use core_message_external;
-use externallib_advanced_testcase;
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot . '/webservice/tests/helpers.php');
 require_once($CFG->dirroot . '/message/externallib.php');
 
 /**
@@ -36,8 +34,7 @@ require_once($CFG->dirroot . '/message/externallib.php');
  * @copyright  2012 Jerome Mouneyrac
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-final class externallib_test extends externallib_advanced_testcase {
-
+final class externallib_test extends \core_external\tests\externallib_testcase {
     /**
      * Tests set up
      */
@@ -5919,5 +5916,44 @@ final class externallib_test extends externallib_advanced_testcase {
         $result = external\get_unsent_message::execute();
         $result = external_api::clean_returnvalue(external\get_unsent_message::execute_returns(), $result);
         $this->assertEmpty($result);
+    }
+
+    /**
+     * Tests conversation messaging is restricted by each user’s messaging permission.
+     *
+     * @covers ::get_conversation
+     */
+    public function test_get_conversation_send_message_permission(): void {
+        $this->resetAfterTest();
+
+        // Create some users.
+        $user1 = self::getDataGenerator()->create_user();
+        $user2 = self::getDataGenerator()->create_user();
+        $user3 = self::getDataGenerator()->create_user();
+
+        // Create a course and enrol user1 and user2.
+        $course1 = $this->getDataGenerator()->create_course();
+        $this->setAdminUser();
+        $this->getDataGenerator()->enrol_user($user1->id, $course1->id);
+        $this->getDataGenerator()->enrol_user($user2->id, $course1->id);
+
+        // Conversation between two enrolled users.
+        $conversation1 = \core_message\api::create_conversation(\core_message\api::MESSAGE_CONVERSATION_TYPE_INDIVIDUAL,
+                [$user1->id, $user2->id]);
+        // Conversation involving a non-enrolled user.
+        $conversation2 = \core_message\api::create_conversation(\core_message\api::MESSAGE_CONVERSATION_TYPE_INDIVIDUAL,
+                [$user1->id, $user3->id]);
+
+        // User2 should be able to send a message to user1.
+        $this->setUser($user2);
+        $conv = core_message_external::get_conversation($user2->id, $conversation1->id);
+        $conv = external_api::clean_returnvalue(core_message_external::get_conversation_returns(), $conv);
+        $this->assertTrue($conv['cansendmessagetoconversation']);
+
+        // User3 should not be able to send a message to user1.
+        $this->setUser($user3);
+        $conv = core_message_external::get_conversation($user3->id, $conversation2->id);
+        $conv = external_api::clean_returnvalue(core_message_external::get_conversation_returns(), $conv);
+        $this->assertFalse($conv['cansendmessagetoconversation']);
     }
 }

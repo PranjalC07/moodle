@@ -264,7 +264,7 @@ class audience {
     public static function get_audiences_for_report_schedules(int $reportid): array {
         global $DB;
 
-        $audiences = $DB->get_fieldset_select(schedule::TABLE, 'audiences', 'reportid = ?', [$reportid]);
+        $audiences = $DB->get_fieldset_select(schedule::TABLE, 'audiences', 'reportid = ? AND audiences IS NOT NULL', [$reportid]);
 
         // Reduce JSON encoded audience data of each schedule to an array of audience IDs.
         $audienceids = array_reduce($audiences, static function(array $carry, string $audience): array {
@@ -303,6 +303,6 @@ class audience {
      */
     #[\core\attribute\deprecated('custom_report_audience_cards_exporter', since: '4.1', final: true)]
     public static function get_all_audiences_menu_types() {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 }

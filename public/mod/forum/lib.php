@@ -20,6 +20,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\url;
 use mod_forum\local\entities\forum as forum_entity;
 
 defined('MOODLE_INTERNAL') || die();
@@ -357,25 +358,24 @@ function forum_delete_instance($id) {
  * @return mixed True if module supports feature, false if not, null if doesn't know or string for the module purpose.
  */
 function forum_supports($feature) {
-    switch($feature) {
-        case FEATURE_GROUPS:                  return true;
-        case FEATURE_GROUPINGS:               return true;
-        case FEATURE_MOD_INTRO:               return true;
-        case FEATURE_COMPLETION_TRACKS_VIEWS: return true;
-        case FEATURE_COMPLETION_HAS_RULES:    return true;
-        case FEATURE_GRADE_HAS_GRADE:         return true;
-        case FEATURE_GRADE_OUTCOMES:          return true;
-        case FEATURE_RATE:                    return true;
-        case FEATURE_BACKUP_MOODLE2:          return true;
-        case FEATURE_SHOW_DESCRIPTION:        return true;
-        case FEATURE_PLAGIARISM:              return true;
-        case FEATURE_ADVANCED_GRADING:        return true;
-        case FEATURE_MOD_PURPOSE:             return MOD_PURPOSE_COLLABORATION;
-        case FEATURE_CAN_UNINSTALL:
-            return false;
-
-        default: return null;
-    }
+    return match ($feature) {
+        FEATURE_GROUPS => true,
+        FEATURE_GROUPINGS => true,
+        FEATURE_MOD_INTRO => true,
+        FEATURE_COMPLETION_TRACKS_VIEWS => true,
+        FEATURE_COMPLETION_HAS_RULES => true,
+        FEATURE_GRADE_HAS_GRADE => true,
+        FEATURE_GRADE_OUTCOMES => true,
+        FEATURE_RATE => true,
+        FEATURE_BACKUP_MOODLE2 => true,
+        FEATURE_SHOW_DESCRIPTION => true,
+        FEATURE_PLAGIARISM => true,
+        FEATURE_ADVANCED_GRADING => true,
+        FEATURE_MOD_PURPOSE => MOD_PURPOSE_COLLABORATION,
+        FEATURE_MOD_OTHERPURPOSE => MOD_PURPOSE_COMMUNICATION,
+        FEATURE_CAN_UNINSTALL => false,
+        default => null,
+    };
 }
 
 /**
@@ -2580,7 +2580,14 @@ function forum_print_attachments($post, $cm, $type) {
                             'style' => 'max-width: 24px; max-height: 24px; vertical-align: middle;',
                     ]
             );
-            $path = file_encode_url($CFG->wwwroot.'/pluginfile.php', '/'.$context->id.'/mod_forum/attachment/'.$post->id.'/'.$filename);
+            $path = url::make_pluginfile_url(
+                contextid: $context->id,
+                component: 'mod_forum',
+                area: 'attachment',
+                itemid: $post->id,
+                pathname: '/',
+                filename: $filename
+            )->out();
 
             if ($type == 'html') {
                 $output .= "<a href=\"$path\">$iconimage</a> ";
@@ -4999,7 +5006,7 @@ function forum_reset_gradebook($courseid, $type='') {
  *
  * @global object
  * @global object
- * @param $data the data submitted from the reset course.
+ * @param stdClass $data the data submitted from the reset course.
  * @return array status array
  */
 function forum_reset_userdata($data) {
@@ -5202,7 +5209,13 @@ function forum_reset_userdata($data) {
     if ($data->timeshift) {
         // Any changes to the list of dates that needs to be rolled should be same during course restore and course reset.
         // See MDL-9367.
-        shift_course_mod_dates('forum', ['assesstimestart', 'assesstimefinish'], $data->timeshift, $data->courseid);
+        shift_course_mod_dates('forum', [
+            'assesstimestart',
+            'assesstimefinish',
+            'duedate',
+            'cutoffdate',
+        ], $data->timeshift, $data->courseid);
+
         $status[] = [
             'component' => $componentstr,
             'item' => get_string('date'),

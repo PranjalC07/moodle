@@ -166,6 +166,7 @@ class controlmenu extends basecontrolmenu {
         $controls['duplicate'] = $this->get_cm_duplicate_item();
         $controls['assign'] = $this->get_cm_assign_item();
         $controls['groupmode'] = $this->get_cm_groupmode_item();
+        $controls['permalink'] = $this->get_cm_permalink_item();
         $controls['delete'] = $this->get_cm_delete_item();
 
         return $controls;
@@ -395,6 +396,27 @@ class controlmenu extends basecontrolmenu {
     }
 
     /**
+     * Generates the permalink item for a course module.
+     *
+     * @return link|null The menu item if applicable, otherwise null.
+     */
+    protected function get_cm_permalink_item(): ?link {
+        $url = $this->mod->get_url();
+        if (!$url) {
+            return null;
+        }
+        return new link_secondary(
+            url: $url,
+            icon: new pix_icon('i/link', ''),
+            text: get_string('activitylink', 'course'),
+            attributes: [
+                'class' => 'permalink',
+                'data-action' => 'permalink',
+            ],
+        );
+    }
+
+    /**
      * Generates the delete item for a course module.
      *
      * @return link|null The menu item if applicable, otherwise null.
@@ -481,7 +503,7 @@ class controlmenu extends basecontrolmenu {
         mdl: 'MDL-83527',
     )]
     protected function cm_control_items() {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
         $format = $this->format;
         $mod = $this->mod;
         $sectionreturn = $format->get_sectionnum();

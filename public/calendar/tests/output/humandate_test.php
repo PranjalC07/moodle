@@ -252,4 +252,56 @@ final class humandate_test extends \advanced_testcase {
             $this->assertStringNotContainsString('Tomorrow', $actual['date']);
         }
     }
+
+    /**
+     * Test get_near_icon method.
+     *
+     * This test checks that the near icon is returned correctly based on the timestamp.
+     */
+    public function test_get_near_icon(): void {
+        $this->resetAfterTest();
+
+        $clock = $this->mock_clock_with_frozen();
+
+        // Near time.
+        $timestamp = $clock->time() + HOURSECS;
+        $humandate = humandate::create_from_timestamp($timestamp);
+        $icon = $humandate->get_near_icon();
+
+        $this->assertInstanceOf(\core\output\pix_icon::class, $icon);
+
+        // Not near time.
+        $timestamp = $clock->time() + DAYSECS * 30;
+        $humandate = humandate::create_from_timestamp($timestamp);
+        $icon = $humandate->get_near_icon();
+
+        $this->assertNull($icon);
+    }
+
+    /**
+     * Test the exportable interface implementation.
+     */
+    public function test_get_exporter(): void {
+        $this->resetAfterTest();
+
+        $clock = $this->mock_clock_with_frozen();
+        $timestamp = $clock->time();
+        $humandate = humandate::create_from_timestamp($timestamp);
+
+        $exporter = $humandate->get_exporter(\core\context\system::instance());
+        $this->assertInstanceOf(\core_calendar\external\humandate_exporter::class, $exporter);
+
+        $structure = humandate::get_read_structure();
+        $this->assertInstanceOf(\core_external\external_single_structure::class, $structure);
+        $this->assertEquals(
+            \core_calendar\external\humandate_exporter::get_read_structure(),
+            $structure,
+        );
+
+        $structure = humandate::read_properties_definition();
+        $this->assertEquals(
+            \core_calendar\external\humandate_exporter::read_properties_definition(),
+            $structure,
+        );
+    }
 }

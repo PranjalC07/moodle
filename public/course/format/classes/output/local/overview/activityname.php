@@ -17,10 +17,12 @@
 namespace core_courseformat\output\local\overview;
 
 use cm_info;
+use core\output\externable;
 use core\output\named_templatable;
 use core\output\renderable;
 use core\output\renderer_base;
 use core_courseformat\base as course_format;
+use core_courseformat\external\activityname_exporter;
 use stdClass;
 
 /**
@@ -30,7 +32,7 @@ use stdClass;
  * @copyright  2025 Ferran Recio <ferran@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class activityname implements renderable, named_templatable {
+class activityname implements externable, named_templatable, renderable {
     /**
      * Constructor.
      *
@@ -39,7 +41,20 @@ class activityname implements renderable, named_templatable {
     public function __construct(
         /** @var cm_info The course module. */
         protected cm_info $cm,
+        /** @var bool Should show no groups error */
+        protected bool $nogroupserror = false,
     ) {
+    }
+
+    /**
+     * nogroupserror property setter
+     *
+     * @param bool $nogroupserror New value fpr nogroupserror property
+     * @return $this
+     */
+    public function set_nogroupserror(bool $nogroupserror): self {
+        $this->nogroupserror = $nogroupserror;
+        return $this;
     }
 
     /**
@@ -59,11 +74,44 @@ class activityname implements renderable, named_templatable {
             'activityurl' => $cm->url,
             'hidden' => empty($cm->visible),
             'stealth' => $cm->is_stealth(),
+            'nogroupserror' => $this->nogroupserror,
         ];
         if ($format->uses_sections()) {
             $result->sectiontitle = $format->get_section_name($section);
         }
         return $result;
+    }
+
+    /**
+     * Get the error messages for this activity.
+     *
+     * @return array
+     */
+    public function get_error_messages(): array {
+        $messages = [];
+        if ($this->nogroupserror) {
+            $messages[] = get_string('overview_nogroups_error', 'course');
+        }
+        return $messages;
+    }
+
+    #[\Override]
+    public function get_exporter(?\core\context $context = null): activityname_exporter {
+        $context = $context ?? $this->cm->context;
+        return new activityname_exporter($this, ['context' => $context]);
+    }
+
+    #[\Override]
+    public static function get_read_structure(
+        int $required = VALUE_REQUIRED,
+        mixed $default = null
+    ): \core_external\external_single_structure {
+        return activityname_exporter::get_read_structure($required, $default);
+    }
+
+    #[\Override]
+    public static function read_properties_definition(): array {
+        return activityname_exporter::read_properties_definition();
     }
 
     /**

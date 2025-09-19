@@ -4909,7 +4909,7 @@
     <DATABASE level="required">
       <VENDOR name="mariadb" version="10.11.0" />
       <VENDOR name="mysql" version="8.4" />
-      <VENDOR name="postgres" version="14" />
+      <VENDOR name="postgres" version="15" />
       <VENDOR name="mssql" version="14.0" />
       <VENDOR name="auroramysql" version="8.0" />
     </DATABASE>
@@ -5021,6 +5021,9 @@
       </PHP_SETTING>
     </PHP_SETTINGS>
     <CUSTOM_CHECKS>
+      <CUSTOM_CHECK function="\core\environment::check_composer_dependencies_installed" level="optional" />
+      <CUSTOM_CHECK function="\core\environment::check_composer_developer_dependencies_not_installed" level="optional" />
+      <CUSTOM_CHECK function="\core\environment::check_composer_dependencies_optimised" level="optional" />
       <CUSTOM_CHECK file="lib/upgradelib.php" function="check_database_storage_engine" level="required">
         <FEEDBACK>
           <ON_ERROR message="unsupporteddbstorageengine" />

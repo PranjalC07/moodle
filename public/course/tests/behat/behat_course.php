@@ -326,12 +326,19 @@ class behat_course extends behat_base {
         // Clicks the selected activity if it exists.
         $activityliteral = behat_context_helper::escape(ucfirst($activityname));
         $activityxpath = "//div[contains(concat(' ', normalize-space(@class), ' '), ' modchooser ')]" .
-            "/descendant::div[contains(concat(' ', normalize-space(@class), ' '), ' optioninfo ')]" .
+            "/descendant::*[contains(concat(' ', normalize-space(@class), ' '), ' optioninfo ')]" .
             "/descendant::div[contains(concat(' ', normalize-space(@class), ' '), ' optionname ')]" .
             "[normalize-space(.)=$activityliteral]" .
             "/parent::a";
 
         $this->execute('behat_general::i_click_on', [$activityxpath, 'xpath']);
+
+        $this->execute('behat_general::i_click_on_in_the', [
+            get_string('addselectedactivity', 'course'),
+            'button',
+            get_string('addresourceoractivity', 'moodle'),
+            'dialogue',
+        ]);
     }
 
     /**

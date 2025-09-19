@@ -1,15 +1,39 @@
 # core_courseformat (subsystem / plugintype) Upgrade notes
 
-## 5.1dev
+## 5.1dev+
 
 ### Added
 
+- From now on, the activity chooser will use core_courseformat_get_section_content_items to get the available modules for a specific section
+
+  For more information see [MDL-80295](https://tracker.moodle.org/browse/MDL-80295)
 - Added new core_courseformat\output\local\overview\overviewdialog output class to create dialog elements in the course overview page. Overview dialog will display a combination of title, description and a list of items (label: value).
 
   For more information see [MDL-83896](https://tracker.moodle.org/browse/MDL-83896)
 - A new interface, `main_activity_interface`, is now available. Course format plugins should implement it if they intend to display only a single activity in the course page.
 
   For more information see [MDL-85433](https://tracker.moodle.org/browse/MDL-85433)
+- The core_courseformat\local\overview\overviewfactory now includes a new method, activity_has_overview_integration, which determines if a module supports overview integration.
+
+  For more information see [MDL-85509](https://tracker.moodle.org/browse/MDL-85509)
+- New needs_filtering_by_groups() and get_groups_for_filtering() had been created in activityoverviewbase class for a better management of groups filtering in Activities overview page by activities.   needs_filtering_by_groups() returns whether the user needs to filter by groups in the current module, and get_groups_for_filtering() returns which is the filter the user should use with groups API.
+
+  For more information see [MDL-85852](https://tracker.moodle.org/browse/MDL-85852)
+- A new has_error() function has been created in activityoverviewbase class to raise when a user is trying to check information about a module set as SEPARATE_GROUPS but the user is not in any group.
+
+  For more information see [MDL-85852](https://tracker.moodle.org/browse/MDL-85852)
+- New optional $nogroupserror parameter has been added to activityname class constructor. A set_nogroupserror() setter to change the value after the constructor has been also added.
+
+  For more information see [MDL-85852](https://tracker.moodle.org/browse/MDL-85852)
+- Added new `core_courseformat\output\local\overview\overviewaction` output class to create action buttons that now include a badge right next to the button text. It essentially extends the existing action_link class to add a badge, making important actions stand out more on the course overview. Plus, this new structure also makes these badged action links easier to export this information for web services.
+
+  For more information see [MDL-85981](https://tracker.moodle.org/browse/MDL-85981)
+- The `core_course\output\activitychooserbutton` has been moved to `core_courseformat\output\local\activitychooserbutton` . From now on, format plugins can provide alternative outputs for this element. Also, all the javascript and templates related to the activity chooser are now located inside the core_courseformat subsystem.
+
+  For more information see [MDL-86337](https://tracker.moodle.org/browse/MDL-86337)
+- All activity chooser related code has been moved to the `core_courseformat` subsystem. This includes all templates, javascript, and the main output class. If your theme overrides any of these, you will need to update your code accordingly.
+
+  For more information see [MDL-86337](https://tracker.moodle.org/browse/MDL-86337)
 
 ### Changed
 
@@ -25,6 +49,9 @@
 - The format base method get_max_sections has been deprecated, as the maxsections setting is also deprecated and no longer in use.
 
   For more information see [MDL-84291](https://tracker.moodle.org/browse/MDL-84291)
+- The course format "numsections" option to increment and decrement the number of sections of the course one by one is now deprecated and will be removed in Moodle 6.0.
+
+  For more information see [MDL-85284](https://tracker.moodle.org/browse/MDL-85284)
 
 ## 5.0
 

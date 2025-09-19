@@ -171,7 +171,7 @@ class report {
                     // Map new audience ids with the old ones.
                     $audiences = array_map(
                         fn($audienceid) => $audiencemap[$audienceid] ?? 0,
-                        (array) json_decode($schedulerecord->audiences),
+                        (array) json_decode((string) $schedulerecord->audiences),
                     );
 
                     (new schedule(0, $schedulerecord))
@@ -535,7 +535,7 @@ class report {
      */
     #[\core\attribute\deprecated('custom_report_column_cards_exporter', since: '4.1', final: true)]
     public static function get_available_columns() {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     /**

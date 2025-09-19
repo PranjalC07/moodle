@@ -317,8 +317,14 @@ class notification_helper {
      * @param int $userid The user id.
      */
     public static function send_due_soon_notification_to_user(int $assignmentid, int $userid): void {
-        // Get assignment data.
-        $assignmentobj = self::get_assignment_data($assignmentid);
+        try {
+            // Get assignment data.
+            $assignmentobj = self::get_assignment_data($assignmentid);
+        } catch (\dml_missing_record_exception) {
+            // The assignment has vanished, nothing to do.
+            mtrace("No notification send as the assignment $assignmentid can no longer be found in the database.");
+            return;
+        }
 
         // Check if the due date still within range.
         $assignmentobj->update_effective_access($userid);
@@ -345,12 +351,21 @@ class notification_helper {
         ];
         $url = new \moodle_url('/mod/assign/view.php', $urlparams);
 
+        // Shortlink for SMS.
+        $shortlink = \core_sms\manager::create_shortlink_for_users(
+            component: 'mod_assign',
+            linktype: 'view',
+            identifier: $assignmentobj->get_course_module()->id,
+            userids: [$userid],
+        );
+
         $stringparams = [
             'firstname' => $user->firstname,
             'assignmentname' => $assignmentobj->get_instance()->name,
             'coursename' => $assignmentobj->get_course()->fullname,
             'duedate' => userdate($duedate),
             'url' => $url,
+            'shortlink' => $shortlink,
         ];
 
         $messagedata = [
@@ -392,8 +407,14 @@ class notification_helper {
      * @param int $userid The user id.
      */
     public static function send_overdue_notification_to_user(int $assignmentid, int $userid): void {
-        // Get assignment data.
-        $assignmentobj = self::get_assignment_data($assignmentid);
+        try {
+            // Get assignment data.
+            $assignmentobj = self::get_assignment_data($assignmentid);
+        } catch (\dml_missing_record_exception) {
+            // The assignment has vanished, nothing to do.
+            mtrace("No notification send as the assignment $assignmentid can no longer be found in the database.");
+            return;
+        }
 
         // Get the user and check they are a still a valid participant.
         $user = $assignmentobj->get_participant($userid);
@@ -427,6 +448,14 @@ class notification_helper {
         ];
         $url = new \moodle_url('/mod/assign/view.php', $urlparams);
 
+        // Shortlink for SMS.
+        $shortlink = \core_sms\manager::create_shortlink_for_users(
+            component: 'mod_assign',
+            linktype: 'view',
+            identifier: $assignmentobj->get_course_module()->id,
+            userids: [$userid],
+        );
+
         // Prepare the cut-off date html string.
         $snippet = '';
         if (!empty($cutoffdate)) {
@@ -440,6 +469,7 @@ class notification_helper {
             'duedate' => userdate($duedate),
             'url' => $url,
             'cutoffsnippet' => $snippet,
+            'shortlink' => $shortlink,
         ];
 
         $messagedata = [
@@ -518,11 +548,22 @@ class notification_helper {
                 'id' => $assignmentobj->get_course_module()->id,
                 'action' => 'view',
             ];
+            $url = new \moodle_url('/mod/assign/view.php', $urlparams);
+
+            // Shortlink for SMS.
+            $shortlink = \core_sms\manager::create_shortlink_for_users(
+                component: 'mod_assign',
+                linktype: 'view',
+                identifier: $assignmentobj->get_course_module()->id,
+                userids: [$userid],
+            );
+
             $assignmentsfordigest[$assignment->id] = [
                 'assignmentname' => $assignmentobj->get_instance()->name,
                 'coursename' => $assignmentobj->get_course()->fullname,
                 'duetime' => userdate($duedate, get_string('strftimetime12', 'langconfig')),
-                'url' => new \moodle_url('/mod/assign/view.php', $urlparams),
+                'url' => $url,
+                'shortlink' => $shortlink,
             ];
         }
         $assignments->close();

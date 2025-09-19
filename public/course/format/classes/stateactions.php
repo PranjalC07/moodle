@@ -157,7 +157,7 @@ class stateactions {
         ?int $targetsectionid = null,
         ?int $targetcmid = null
     ): void {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     /**
@@ -248,8 +248,6 @@ class stateactions {
     /**
      * Create a course section.
      *
-     * This method follows the same logic as changenumsections.php.
-     *
      * @param stateupdates $updates the affected course elements track
      * @param stdClass $course the course object
      * @param int[] $ids not used
@@ -275,7 +273,7 @@ class stateactions {
             $targetsection = $modinfo->get_section_info_by_id($targetsectionid, MUST_EXIST);
             // Inserting sections at any position except in the very end requires capability to move sections.
             require_capability('moodle/course:movesections', $coursecontext);
-            $insertposition = $targetsection->section + 1;
+            $insertposition = $targetsection->sectionnum + 1;
         } else {
             // Get last section.
             $insertposition = 0;
@@ -1182,7 +1180,7 @@ class stateactions {
         global $CFG;
         require_once($CFG->dirroot . '/course/modlib.php');
 
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
 
         $coursecontext = context_course::instance($course->id);
         require_capability('moodle/course:update', $coursecontext);
